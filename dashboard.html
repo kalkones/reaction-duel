@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Reaction Duel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg:          #08080e;
+            --bg-card:     rgba(14,14,26,.95);
+            --border:      rgba(0,245,255,.15);
+            --cyan:        #00f5ff;
+            --pink:        #ff2d75;
+            --green:       #00ff88;
+            --yellow:      #ffe600;
+            --text-muted:  rgba(255,255,255,.45);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Rajdhani', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; overflow-x: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; z-index: 0; background-image: radial-gradient(rgba(0,245,255,.07) 1px, transparent 1px); background-size: 32px 32px; pointer-events: none; }
+        
+        .container { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+        header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; flex-wrap: wrap; gap: 12px; }
+        .header-left h1 { font-family: 'Orbitron', monospace; font-size: clamp(1.2rem, 4vw, 1.8rem); font-weight: 900; letter-spacing: 4px; color: var(--cyan); }
+        .back-btn { padding: 10px 20px; font-family: 'Orbitron', monospace; font-size: .75rem; letter-spacing: 2px; text-decoration: none; background: rgba(255,45,117,.15); border: 1px solid var(--pink); border-radius: 8px; color: var(--pink); transition: all .3s; cursor: pointer; display:inline-block; text-align:center;}
+        .back-btn:hover { background: rgba(255,45,117,.28); }
+        
+        .section-title { font-family: 'Orbitron', monospace; font-size: .8rem; letter-spacing: 3px; color: var(--cyan); text-transform: uppercase; margin-bottom: 14px; margin-top: 30px; border-bottom: 1px solid rgba(0,245,255,.1); padding-bottom: 5px; }
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 36px; }
+        .summary-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; text-align: center; }
+        .summary-card .label { font-size: .72rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+        .summary-card .value { font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 700; }
+        .summary-card .unit { font-size: .8rem; color: var(--text-muted); margin-left: 4px; }
+        .summary-card.cyan  .value { color: var(--cyan); }
+        .summary-card.green .value { color: var(--green); }
+        .summary-card.pink  .value { color: var(--pink); }
+        
+        .history-list { display: flex; flex-direction: column; gap: 10px; }
+        .history-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+        .winner-tag { font-family: 'Orbitron', monospace; font-size: .72rem; padding: 4px 10px; border-radius: 6px; background: rgba(0,255,136,.12); color: var(--green); border: 1px solid rgba(0,255,136,.25); }
+        .history-stats { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted); }
+        .history-stats span { color: #fff; font-family: 'Orbitron'; margin-left: 5px; }
+        
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 36px; }
+        @media (max-width: 680px) { .chart-grid { grid-template-columns: 1fr; } }
+        .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+        .chart-wrap { position: relative; height: 220px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-left">
+            <h1>DASHBOARD</h1>
+            <p style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-top:5px;">PLAYER STATISTICS</p>
+        </div>
+        <a href="index.html" class="back-btn">← MAIN GAME</a>
+    </header>
+
+    <div class="section-title">Ringkasan</div>
+    <div class="summary-grid">
+        <div class="summary-card cyan">
+            <div class="label">Total Sesi</div>
+            <div class="value" id="sum-sessions">0</div>
+        </div>
+        <div class="summary-card green">
+            <div class="label">Rata-rata Reaksi</div>
+            <div class="value" id="sum-avg">---<span class="unit">ms</span></div>
+        </div>
+        <div class="summary-card pink">
+            <div class="label">Reaksi Terbaik</div>
+            <div class="value" id="sum-best">---<span class="unit">ms</span></div>
+        </div>
+    </div>
+
+    <div class="section-title">Grafik Performa</div>
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3 style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px; font-family:Orbitron;">Tren Reaksi</h3>
+            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3 style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px; font-family:Orbitron;">Distribusi Waktu</h3>
+            <div class="chart-wrap"><canvas id="chart-dist"></canvas></div>
+        </div>
+    </div>
+    <!-- Riwayat Sesi -->
+    <div class="section-title">Riwayat Sesi</div>
+    <div class="history-list" id="history-list">
+        <div style="color:var(--text-muted); text-align:center;">Memuat data...</div>
+    </div>
+</div>
+
+<script src="client.js"></script>
+</body>
+</html>
